@@ -17,6 +17,7 @@ pub contract Token {
     use balance_set::BalanceSet;
     use compressed_string::FieldCompressedString;
 
+    // Events.
     #[event]
     struct Transfer {
         from: AztecAddress,
@@ -24,7 +25,7 @@ pub contract Token {
         amount: u128,
     }
 
-    // State vars (decimals, symbol, name, total supply, balances).
+    // State variables.
     #[storage]
     struct Storage<Context> {
         name: PublicImmutable<FieldCompressedString, Context>,
@@ -36,10 +37,9 @@ pub contract Token {
         private_balances: Owned<BalanceSet<Context>, Context>,
     }
 
+    // Global values to use to prevent infinite circuit.
     global MAX_TF_NOTES: u32 = 2;
     global MAX_RECURSE_TF_NOTES: u32 = 8;
-
-    // Functions (constructor, read functions, mint in public and private, transfer in public and private).
 
     /// @notice Initialize the token with the deployer being the minter.
     /// @param name The name of the token.
@@ -54,6 +54,9 @@ pub contract Token {
         self.storage.owner.initialize(self.msg_sender());
     }
 
+    /// @notice Burn a public balance.
+    /// @param from The address to burn the balance from.
+    /// @param amount The amount to burn.
     #[external("public")]
     fn burn_public(from: AztecAddress, amount: u128) {
         // Only owner.
@@ -69,18 +72,24 @@ pub contract Token {
         self.emit(Transfer { from, to: AztecAddress::zero(), amount });
     }
 
+    /// @notice Burn a private balance.
+    /// @param from The address to burn the balance from.
+    /// @param amount The amount to burn.
     #[external("private")]
     fn burn_private(from: AztecAddress, amount: u128) {
         // Only owner.
         assert_eq(self.msg_sender(), self.storage.owner.read(), "Only owner");
 
+        // Deduct from's balance.
+        self.internal._decrease_private_balance(from, amount);
+
         // Deduct total supply.
         self.enqueue_self.decrease_total_supply(amount);
-
-        // Deduct to's balance.
-        self.internal._decrease_private_balance(from, amount);
     }
 
+    /// @notice Mint a public balance.
+    /// @param to The address to mint the balance to.
+    /// @param amount The amount to mint.
     #[external("public")]
     fn mint_public(to: AztecAddress, amount: u128) {
         // Revert if not owner.
@@ -96,6 +105,9 @@ pub contract Token {
         self.emit(Transfer { from: AztecAddress::zero(), to, amount });
     }
 
+    /// @notice Mint a private balance.
+    /// @param to The address to mint the balance to.
+    /// @param amount The amount to mint.
     #[external("private")]
     fn mint_private(to: AztecAddress, amount: u128) {
         // Revert if not owner.
@@ -108,6 +120,11 @@ pub contract Token {
         self.enqueue_self.increase_total_supply(amount);
     }
 
+    /// @notice Transfer a public balance from one address to another.
+    /// @param from The address to transfer the balance from.
+    /// @param to The address to transfer the balance to.
+    /// @param amount The amount to transfer.
+    /// @param authwit_nonce The nonce for the authorization witness.
     #[authorize_once("from", "authwit_nonce")]
     #[external("public")]
     fn transfer_from_public_to_public(
@@ -126,6 +143,11 @@ pub contract Token {
         self.emit(Transfer { from, to, amount });
     }
 
+    /// @notice Transfer a private balance from one address to another's public balance.
+    /// @param from The address to transfer the balance from.
+    /// @param to The address to transfer the balance to.
+    /// @param amount The amount to transfer.
+    /// @param authwit_nonce The nonce for the authorization witness.
     #[authorize_once("from", "authwit_nonce")]
     #[external("private")]
     fn transfer_from_private_to_public(
@@ -141,6 +163,11 @@ pub contract Token {
         self.enqueue_self.increase_public_balance(to, amount);
     }
 
+    /// @notice Transfer a private balance from one address to another's private balance.
+    /// @param from The address to transfer the balance from.
+    /// @param to The address to transfer the balance to.
+    /// @param amount The amount to transfer.
+    /// @param authwit_nonce The nonce for the authorization witness.
     #[authorize_once("from", "authwit_nonce")]
     #[external("private")]
     fn transfer_from_private_to_private(
@@ -156,32 +183,80 @@ pub contract Token {
         self.internal._increase_private_balance(to, amount);
     }
 
+    /// @notice Transfer a public balance from one address to another's private balance.
+    /// @param from The address to transfer the balance from.
+    /// @param to The address to transfer the balance to.
+    /// @param amount The amount to transfer.
+    /// @param authwit_nonce The nonce for the authorization witness.
+    #[authorize_once("from", "authwit_nonce")]
+    #[external("private")]
+    fn transfer_from_public_to_private(
+        from: AztecAddress,
+        to: AztecAddress,
+        amount: u128,
+        authwit_nonce: Field,
+    ) {
+        // Increment to's balance.
+        self.internal._increase_private_balance(to, amount);
+
+        // Decrease from's balance.
+        self.enqueue_self.decrease_public_balance(from, amount);
+    }
+
+    /// @notice Helper function to increase the total supply.
+    /// @dev Can only be called by the contract itself.
+    ///      Used as an enqueued call for increasing the total supply in external private functions.
+    /// @param amount The amount to increase the total supply by.
     #[external("public")]
     #[only_self]
     fn increase_total_supply(amount: u128) {
         self.internal._increase_total_supply(amount);
     }
 
+    /// @notice Helper function to decrease the total supply.
+    /// @dev Can only be called by the contract itself.
+    ///      Used as an enqueued call for decreasing the total supply in external private functions.
+    /// @param amount The amount to decrease the total supply by.
     #[external("public")]
     #[only_self]
     fn decrease_total_supply(amount: u128) {
         self.internal._decrease_total_supply(amount);
     }
 
+    /// @notice Helper function to increase a public balance.
+    /// @dev Can only be called by the contract itself.
+    ///      Used as an enqueued call for increasing a public balance in external private functions.
+    /// @param addr The address to increase the balance of.
+    /// @param amount The amount to increase the balance by.
     #[external("public")]
     #[only_self]
     fn increase_public_balance(addr: AztecAddress, amount: u128) {
         self.internal._increase_public_balance(addr, amount);
     }
 
-    // Helpers.
+    /// @notice Helper function to decrease a public balance.
+    /// @dev Can only be called by the contract itself.
+    ///      Used as an enqueued call for decreasing a public balance in external private functions.
+    /// @param addr The address to decrease the balance of.
+    /// @param amount The amount to decrease the balance by.
+    #[external("public")]
+    #[only_self]
+    fn decrease_public_balance(addr: AztecAddress, amount: u128) {
+        self.internal._decrease_public_balance(addr, amount);
+    }
 
+    /// @notice Internal function to increase a public balance.
+    /// @param addr The address to increase the balance of.
+    /// @param amount The amount to increase the balance by.
     #[internal("public")]
     fn _increase_public_balance(addr: AztecAddress, amount: u128) {
         let new_balance = self.storage.public_balances.at(addr).read() + amount;
         self.storage.public_balances.at(addr).write(new_balance);
     }
 
+    /// @notice Internal function to decrease a public balance.
+    /// @param addr The address to decrease the balance of.
+    /// @param amount The amount to decrease the balance by.
     #[internal("public")]
     fn _decrease_public_balance(addr: AztecAddress, amount: u128) {
         let balance = self.storage.public_balances.at(addr).read();
@@ -190,12 +265,16 @@ pub contract Token {
         self.storage.public_balances.at(addr).write(balance - amount);
     }
 
+    /// @notice Internal function to increase the total supply.
+    /// @param amount The amount to increase the total supply by.
     #[internal("public")]
     fn _increase_total_supply(amount: u128) {
         let new_total_supply = self.storage.total_supply.read() + amount;
         self.storage.total_supply.write(new_total_supply);
     }
 
+    /// @notice Internal function to decrease the total supply.
+    /// @param amount The amount to decrease the total supply by.
     #[internal("public")]
     fn _decrease_total_supply(amount: u128) {
         let total_supply = self.storage.total_supply.read();
@@ -204,6 +283,9 @@ pub contract Token {
         self.storage.total_supply.write(total_supply - amount);
     }
 
+    /// @notice Internal function to increase a private balance.
+    /// @param addr The address to increase the balance of.
+    /// @param amount The amount to increase the balance by.
     #[internal("private")]
     fn _increase_private_balance(addr: AztecAddress, amount: u128) {
         self.storage.private_balances.at(addr).add(amount).deliver(
@@ -211,6 +293,9 @@ pub contract Token {
         );
     }
 
+    /// @notice Internal function to decrease a private balance.
+    /// @param from The address to decrease the balance of.
+    /// @param amount The amount to decrease the balance by.
     #[internal("private")]
     fn _decrease_private_balance(from: AztecAddress, amount: u128) {
         let change = self.internal._subtract_private_balance(from, amount, MAX_TF_NOTES);
@@ -222,13 +307,23 @@ pub contract Token {
         }
     }
 
-    // To create a new circuit.
+    /// @notice External function, expected to be called recursively,
+    ///         if needed to prevent infinite circuit when consuming a private balance's notes.
+    /// @dev Can only be called by the contract itself.
+    /// @param from The address to decrease the balance of.
+    /// @param amount The amount to decrease the balance by.
+    /// @return The amount of notes consumed.
     #[external("private")]
     #[only_self]
     fn recurse_subtract_private_balance_internal(from: AztecAddress, amount: u128) -> u128 {
         self.internal._subtract_private_balance(from, amount, MAX_RECURSE_TF_NOTES)
     }
 
+    /// @notice Internal function to subtract a private balance.
+    /// @param from The address to subtract the balance of.
+    /// @param amount The amount to subtract the balance by.
+    /// @param max_notes The maximum number of notes to consume per `try_sub`.
+    /// @return The amount of notes subtracted.
     #[internal("private")]
     fn _subtract_private_balance(from: AztecAddress, amount: u128, max_notes: u32) -> u128 {
         let consumed = self.storage.private_balances.at(from).try_sub(amount, max_notes);
