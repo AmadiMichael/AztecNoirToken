@@ -54,39 +54,6 @@ pub contract Token {
         self.storage.owner.initialize(self.msg_sender());
     }
 
-    /// @notice Burn a public balance.
-    /// @param from The address to burn the balance from.
-    /// @param amount The amount to burn.
-    #[external("public")]
-    fn burn_public(from: AztecAddress, amount: u128) {
-        // Only owner.
-        assert_eq(self.msg_sender(), self.storage.owner.read(), "Only owner");
-
-        // Decrease total supply.
-        self.internal._decrease_total_supply(amount);
-
-        // Decrease from's balance.
-        self.internal._decrease_public_balance(from, amount);
-
-        // Emit.
-        self.emit(Transfer { from, to: AztecAddress::zero(), amount });
-    }
-
-    /// @notice Burn a private balance.
-    /// @param from The address to burn the balance from.
-    /// @param amount The amount to burn.
-    #[external("private")]
-    fn burn_private(from: AztecAddress, amount: u128) {
-        // Only owner.
-        assert_eq(self.msg_sender(), self.storage.owner.read(), "Only owner");
-
-        // Deduct from's balance.
-        self.internal._decrease_private_balance(from, amount);
-
-        // Deduct total supply.
-        self.enqueue_self.decrease_total_supply(amount);
-    }
-
     /// @notice Mint a public balance.
     /// @param to The address to mint the balance to.
     /// @param amount The amount to mint.
@@ -118,6 +85,39 @@ pub contract Token {
 
         // Increment the total supply.
         self.enqueue_self.increase_total_supply(amount);
+    }
+
+    /// @notice Burn a public balance.
+    /// @param from The address to burn the balance from.
+    /// @param amount The amount to burn.
+    #[external("public")]
+    fn burn_public(from: AztecAddress, amount: u128) {
+        // Only owner.
+        assert_eq(self.msg_sender(), self.storage.owner.read(), "Only owner");
+
+        // Decrease total supply.
+        self.internal._decrease_total_supply(amount);
+
+        // Decrease from's balance.
+        self.internal._decrease_public_balance(from, amount);
+
+        // Emit.
+        self.emit(Transfer { from, to: AztecAddress::zero(), amount });
+    }
+
+    /// @notice Burn a private balance.
+    /// @param from The address to burn the balance from.
+    /// @param amount The amount to burn.
+    #[external("private")]
+    fn burn_private(from: AztecAddress, amount: u128) {
+        // Only owner.
+        assert_eq(self.msg_sender(), self.storage.owner.read(), "Only owner");
+
+        // Deduct from's balance.
+        self.internal._decrease_private_balance(from, amount);
+
+        // Deduct total supply.
+        self.enqueue_self.decrease_total_supply(amount);
     }
 
     /// @notice Transfer a public balance from one address to another.
