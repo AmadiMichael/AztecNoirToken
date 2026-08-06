@@ -3,11 +3,11 @@ use compressed_string::FieldCompressedString;
 use token_contract::Token;
 
 // Deploy details.
-global NAME: FieldCompressedString =
+pub global NAME: FieldCompressedString =
     FieldCompressedString::from_string("AztecNoirToken00000000000000000");
-global SYMBOL: FieldCompressedString =
+pub global SYMBOL: FieldCompressedString =
     FieldCompressedString::from_string("ANT0000000000000000000000000000");
-global DECIMALS: u8 = 18;
+pub global DECIMALS: u8 = 18;
 
 pub unconstrained fn setup_deploy() -> (TestEnvironment, AztecAddress, AztecAddress, AztecAddress) {
     // Setup test env.
