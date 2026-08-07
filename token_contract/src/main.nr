@@ -87,39 +87,6 @@ pub contract Token {
         self.enqueue_self.increase_total_supply(amount);
     }
 
-    /// @notice Burn a public balance.
-    /// @param from The address to burn the balance from.
-    /// @param amount The amount to burn.
-    #[external("public")]
-    fn burn_public(from: AztecAddress, amount: u128) {
-        // Only owner.
-        assert_eq(self.msg_sender(), self.storage.owner.read(), "Only owner");
-
-        // Decrease total supply.
-        self.internal._decrease_total_supply(amount);
-
-        // Decrease from's balance.
-        self.internal._decrease_public_balance(from, amount);
-
-        // Emit.
-        self.emit(Transfer { from, to: AztecAddress::zero(), amount });
-    }
-
-    /// @notice Burn a private balance.
-    /// @param from The address to burn the balance from.
-    /// @param amount The amount to burn.
-    #[external("private")]
-    fn burn_private(from: AztecAddress, amount: u128) {
-        // Only owner.
-        assert_eq(self.msg_sender(), self.storage.owner.read(), "Only owner");
-
-        // Deduct from's balance.
-        self.internal._decrease_private_balance(from, amount);
-
-        // Deduct total supply.
-        self.enqueue_self.decrease_total_supply(amount);
-    }
-
     /// @notice Transfer a public balance from one address to another.
     /// @param from The address to transfer the balance from.
     /// @param to The address to transfer the balance to.
@@ -327,11 +294,12 @@ pub contract Token {
     #[internal("private")]
     fn _subtract_private_balance(from: AztecAddress, amount: u128, max_notes: u32) -> u128 {
         let consumed = self.storage.private_balances.at(from).try_sub(amount, max_notes);
+
         if consumed >= amount {
             consumed - amount
         } else {
-            assert_eq(consumed - amount, 0, "Insufficient balance");
-            self.call_self.recurse_subtract_private_balance_internal(from, amount)
+            assert(consumed > 0, "Insufficient balance");
+            self.call_self.recurse_subtract_private_balance_internal(from, amount - consumed)
         }
     }
 
