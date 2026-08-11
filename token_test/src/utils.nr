@@ -14,7 +14,7 @@ pub unconstrained fn setup_deploy() -> (TestEnvironment, AztecAddress, AztecAddr
     let mut env = TestEnvironment::new();
 
     // Create deployer address.
-    let deployer = env.create_light_account();
+    let deployer = env.create_contract_account();
 
     // Create a user account.
     let user = env.create_contract_account();
@@ -27,4 +27,9 @@ pub unconstrained fn setup_deploy() -> (TestEnvironment, AztecAddress, AztecAddr
         env.deploy("@token_contract/Token").with_public_initializer(deployer, constructor_call);
 
     (env, deployer, user, token_address)
+}
+
+pub unconstrained fn deploy_caller_contract(mut env: TestEnvironment) -> AztecAddress {
+    // Deploy caller contract and return the address.
+    env.deploy("@mocks/CallerContract").without_initializer()
 }

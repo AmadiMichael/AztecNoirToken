@@ -227,7 +227,7 @@ pub contract Token {
     #[internal("public")]
     fn _decrease_public_balance(addr: AztecAddress, amount: u128) {
         let balance = self.storage.public_balances.at(addr).read();
-        assert(balance >= amount, "Insufficient public funds");
+        assert(balance >= amount, "Insufficient public balance");
 
         self.storage.public_balances.at(addr).write(balance - amount);
     }
@@ -245,7 +245,7 @@ pub contract Token {
     #[internal("public")]
     fn _decrease_total_supply(amount: u128) {
         let total_supply = self.storage.total_supply.read();
-        assert(total_supply >= amount, "Insufficent total supply");
+        assert(total_supply >= amount, "Insufficient total supply");
 
         self.storage.total_supply.write(total_supply - amount);
     }
@@ -298,7 +298,7 @@ pub contract Token {
         if consumed >= amount {
             consumed - amount
         } else {
-            assert(consumed > 0, "Insufficient balance");
+            assert(consumed > 0, "Insufficient private balance");
             self.call_self.recurse_subtract_private_balance_internal(from, amount - consumed)
         }
     }

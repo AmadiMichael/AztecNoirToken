@@ -1,25 +1,25 @@
-use crate::utils::{DECIMALS, NAME, setup_deploy, SYMBOL};
+use crate::utils;
 use token_contract::Token;
 
 #[test]
 unconstrained fn test_constructor() {
     // Setup.
-    let (env, deployer, _, token_address) = setup_deploy();
+    let (env, deployer, _, token_address) = utils::setup_deploy();
     let token_contract = Token::at(token_address);
 
     // Assert variables were set correctly.
 
     // Name is correct.
     let name = env.view_public(token_contract.name());
-    assert_eq(name, NAME, "Incorrect name");
+    assert_eq(name, utils::NAME, "Incorrect name");
 
     // Symbol is correct.
     let symbol = env.view_public(token_contract.symbol());
-    assert_eq(symbol, SYMBOL, "Incorrect symbol");
+    assert_eq(symbol, utils::SYMBOL, "Incorrect symbol");
 
     // Decimals is correct.
     let decimals = env.view_public(token_contract.decimals());
-    assert_eq(decimals, DECIMALS, "Incorrect decimals");
+    assert_eq(decimals, utils::DECIMALS, "Incorrect decimals");
 
     // Owner is correct.
     let owner = env.view_public(token_contract.owner());

@@ -6,3 +6,4 @@ type = "lib"
 aztec = { git="https://github.com/AztecProtocol/aztec-nr", tag="v5.0.1", directory="aztec" }
 compressed_string = { git="https://github.com/AztecProtocol/aztec-nr", tag="v5.0.1", directory="compressed-string" }
 token_contract = { path = "../token_contract" }
+mocks = { path = "../mocks" }
