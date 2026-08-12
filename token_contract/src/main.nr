@@ -87,6 +87,33 @@ pub contract Token {
         self.enqueue_self.increase_total_supply(amount);
     }
 
+    /// @notice Burn a public balance.
+    /// @param from The address to burn the balance from.
+    /// @param amount The amount to burn.
+    #[external("public")]
+    fn burn_public(from: AztecAddress, amount: u128) {
+        // Reduce user's balance.
+        self.internal._decrease_public_balance(from, amount);
+
+        // Reduce the total supply.
+        self.internal._decrease_total_supply(amount);
+
+        // Emit a transfer event.
+        self.emit(Transfer { from, to: AztecAddress::zero(), amount });
+    }
+
+    /// @notice Burn a private balance.
+    /// @param from The address to burn the balance from.
+    /// @param amount The amount to burn.
+    #[external("private")]
+    fn burn_private(from: AztecAddress, amount: u128) {
+        // Reduce user's balance.
+        self.internal._decrease_private_balance(from, amount);
+
+        // Reduce the total supply.
+        self.enqueue_self.decrease_total_supply(amount);
+    }
+
     /// @notice Transfer a public balance from one address to another.
     /// @param from The address to transfer the balance from.
     /// @param to The address to transfer the balance to.
