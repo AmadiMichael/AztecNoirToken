@@ -6,3 +6,5 @@ mod transfer_from_public_to_public;
 mod transfer_from_private_to_public;
 mod transfer_from_public_to_private;
 mod transfer_from_private_to_private;
+mod burn_public;
+mod burn_private;

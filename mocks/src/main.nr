@@ -6,7 +6,7 @@ pub contract CallerContract {
     use token_contract::Token;
 
     #[external("private")]
-    fn deposit_from_private_to_public_vault(
+    fn call_transfer_from_private_to_public(
         token_address: AztecAddress,
         amount: u128,
         authwit_nonce: Field,
@@ -20,7 +20,7 @@ pub contract CallerContract {
     }
 
     #[external("private")]
-    fn deposit_from_public_to_private_vault(
+    fn call_transfer_from_public_to_private(
         token_address: AztecAddress,
         amount: u128,
         authwit_nonce: Field,
@@ -34,7 +34,7 @@ pub contract CallerContract {
     }
 
     #[external("private")]
-    fn deposit_from_private_to_private_vault(
+    fn call_transfer_from_private_to_private(
         token_address: AztecAddress,
         amount: u128,
         authwit_nonce: Field,
@@ -45,5 +45,10 @@ pub contract CallerContract {
             amount,
             authwit_nonce,
         ));
+    }
+
+    #[external("private")]
+    fn call_burn_private(token_address: AztecAddress, amount: u128, authwit_nonce: Field) {
+        self.call(Token::at(token_address).burn_private(self.msg_sender(), amount, authwit_nonce));
     }
 }

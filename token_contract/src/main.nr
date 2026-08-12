@@ -31,7 +31,7 @@ pub contract Token {
         name: PublicImmutable<FieldCompressedString, Context>,
         symbol: PublicImmutable<FieldCompressedString, Context>,
         decimals: PublicImmutable<u8, Context>,
-        owner: PublicImmutable<AztecAddress, Context>,
+        owner: PublicMutable<AztecAddress, Context>,
         total_supply: PublicMutable<u128, Context>,
         public_balances: Map<AztecAddress, PublicMutable<u128, Context>, Context>,
         private_balances: Owned<BalanceSet<Context>, Context>,
@@ -51,7 +51,7 @@ pub contract Token {
         self.storage.name.initialize(name);
         self.storage.symbol.initialize(symbol);
         self.storage.decimals.initialize(decimals);
-        self.storage.owner.initialize(self.msg_sender());
+        self.storage.owner.write(self.msg_sender());
     }
 
     /// @notice Mint a public balance.
@@ -78,7 +78,7 @@ pub contract Token {
     #[external("private")]
     fn mint_private(to: AztecAddress, amount: u128) {
         // Revert if not owner.
-        assert_eq(self.msg_sender(), self.storage.owner.read(), "Only owner");
+        self.enqueue_self.assert_is_owner(self.msg_sender());
 
         // Increment to's balance.
         self.internal._increase_private_balance(to, amount);
@@ -92,6 +92,9 @@ pub contract Token {
     /// @param amount The amount to burn.
     #[external("public")]
     fn burn_public(from: AztecAddress, amount: u128) {
+        // Revert if not owner.
+        assert_eq(self.msg_sender(), self.storage.owner.read(), "Only owner");
+
         // Reduce user's balance.
         self.internal._decrease_public_balance(from, amount);
 
@@ -105,8 +108,10 @@ pub contract Token {
     /// @notice Burn a private balance.
     /// @param from The address to burn the balance from.
     /// @param amount The amount to burn.
+    /// @param authwit_nonce The nonce for the authorization witness.
+    #[authorize_once("from", "authwit_nonce")]
     #[external("private")]
-    fn burn_private(from: AztecAddress, amount: u128) {
+    fn burn_private(from: AztecAddress, amount: u128, authwit_nonce: Field) {
         // Reduce user's balance.
         self.internal._decrease_private_balance(from, amount);
 
@@ -328,6 +333,15 @@ pub contract Token {
             assert(consumed > 0, "Insufficient private balance");
             self.call_self.recurse_subtract_private_balance_internal(from, amount - consumed)
         }
+    }
+
+    /// @notice Helper function to assert that an address is the owner.
+    /// @dev Can only be called by the contract itself.
+    /// @param addr The address to check if it is the owner.
+    #[external("public")]
+    #[only_self]
+    fn assert_is_owner(addr: AztecAddress) {
+        assert_eq(addr, self.storage.owner.read(), "Only owner");
     }
 
     // Getters.

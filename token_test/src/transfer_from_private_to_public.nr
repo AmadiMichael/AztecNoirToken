@@ -97,7 +97,7 @@ unconstrained fn test_transfer_from_private_to_public_authwit() {
     // Make the call to caller contract.
     env.call_private(
         deployer,
-        caller_contract.deposit_from_private_to_public_vault(
+        caller_contract.call_transfer_from_private_to_public(
             token_address,
             tf_amount,
             authwit_nonce,
@@ -121,7 +121,7 @@ unconstrained fn test_transfer_from_private_to_public_authwit() {
     );
 }
 
-#[test(should_fail_with = "Unknown auth witness for message hash 0x19c6c0cf2921e90d1606ecbd51b2451c471cfc661f2003cb101447edd3b5de8a")]
+#[test(should_fail_with = "Unknown auth witness for message hash 0x032c2c79dadcddd698af28b02f43ec868c3e14572944ac15688f58d92a4cbdb7")]
 unconstrained fn test_transfer_from_private_to_public_authwit_invalid_nonce() {
     // Setup.
     let (env, deployer, _, token_address, caller_address) =
@@ -142,7 +142,7 @@ unconstrained fn test_transfer_from_private_to_public_authwit_invalid_nonce() {
     // Make the call to caller contract.
     env.call_private(
         deployer,
-        caller_contract.deposit_from_private_to_public_vault(
+        caller_contract.call_transfer_from_private_to_public(
             token_address,
             tf_amount,
             authwit_nonce,
