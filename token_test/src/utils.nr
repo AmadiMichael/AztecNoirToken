@@ -29,7 +29,9 @@ pub unconstrained fn setup_deploy() -> (TestEnvironment, AztecAddress, AztecAddr
     (env, deployer, user, token_address)
 }
 
-pub unconstrained fn deploy_caller_contract(mut env: TestEnvironment) -> AztecAddress {
+pub unconstrained fn setup_and_deploy_caller_contract() -> (TestEnvironment, AztecAddress, AztecAddress, AztecAddress, AztecAddress) {
+    // Setup.
+    let (mut env, deployer, user, token_address) = setup_deploy();
     // Deploy caller contract and return the address.
-    env.deploy("@mocks/CallerContract").without_initializer()
+    (env, deployer, user, token_address, env.deploy("@mocks/CallerContract").without_initializer())
 }

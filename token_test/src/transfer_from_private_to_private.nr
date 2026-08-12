@@ -4,45 +4,45 @@ use mocks::CallerContract::CallerContract;
 use token_contract::Token;
 
 #[test]
-unconstrained fn test_transfer_from_private_to_public() {
+unconstrained fn test_transfer_from_private_to_private() {
     // Setup.
     let (env, deployer, user, token_address) = utils::setup_deploy();
     let token_contract = Token::at(token_address);
 
-    // Mint for deployer.
+    // Mint to deployer.
     let mint_amount = 1_000;
     env.call_private(deployer, token_contract.mint_private(deployer, mint_amount));
 
-    // Get balances before.
+    // Get pre balances.
     let deployer_bal_before = env.execute_utility(token_contract.private_balance(deployer));
-    let user_bal_before = env.view_public(token_contract.public_balance(user));
+    let user_bal_before = env.execute_utility(token_contract.private_balance(user));
 
-    // Transfer from deployer to user.
+    // Transfer from deployer public balance to user's private balance.
     let tf_amount = 500;
     env.call_private(
         deployer,
-        token_contract.transfer_from_private_to_public(deployer, user, tf_amount, 0),
+        token_contract.transfer_from_private_to_private(deployer, user, tf_amount, 0),
     );
 
-    // Get balances after.
+    // Get pre balances.
     let deployer_bal_after = env.execute_utility(token_contract.private_balance(deployer));
-    let user_bal_after = env.view_public(token_contract.public_balance(user));
+    let user_bal_after = env.execute_utility(token_contract.private_balance(user));
 
     // Assertions.
     assert_eq(
         deployer_bal_before - deployer_bal_after,
-        tf_amount,
-        "Deployer balance did not decrease by expected amount",
+        mint_amount - tf_amount,
+        "Deployer balance did not decrease as expected",
     );
     assert_eq(
         user_bal_after - user_bal_before,
-        tf_amount,
+        mint_amount - tf_amount,
         "User balance did not increase as expected",
     );
 }
 
 #[test(should_fail_with = "Insufficient private balance")]
-unconstrained fn test_transfer_from_private_to_public_insufficient_balance() {
+unconstrained fn test_transfer_from_private_to_private_insufficient_balance() {
     // Setup.
     let (env, deployer, user, token_address) = utils::setup_deploy();
     let token_contract = Token::at(token_address);
@@ -55,12 +55,12 @@ unconstrained fn test_transfer_from_private_to_public_insufficient_balance() {
     let tf_amount = 2_000;
     env.call_private(
         deployer,
-        token_contract.transfer_from_private_to_public(deployer, user, tf_amount, 0),
+        token_contract.transfer_from_private_to_private(deployer, user, tf_amount, 0),
     );
 }
 
 #[test]
-unconstrained fn test_transfer_from_private_to_public_authwit() {
+unconstrained fn test_transfer_from_private_to_private_authwit() {
     // Setup.
     let (env, deployer, _, token_address, caller_address) =
         utils::setup_and_deploy_caller_contract();
@@ -73,7 +73,7 @@ unconstrained fn test_transfer_from_private_to_public_authwit() {
 
     // Get balances before.
     let deployer_bal_before = env.execute_utility(token_contract.private_balance(deployer));
-    let caller_bal_before = env.view_public(token_contract.public_balance(caller_address));
+    let caller_bal_before = env.execute_utility(token_contract.private_balance(caller_address));
 
     // Transfer amount.
     let tf_amount = 500;
@@ -86,7 +86,7 @@ unconstrained fn test_transfer_from_private_to_public_authwit() {
         env,
         deployer,
         caller_address,
-        token_contract.transfer_from_private_to_public(
+        token_contract.transfer_from_private_to_private(
             deployer,
             caller_address,
             tf_amount,
@@ -97,7 +97,7 @@ unconstrained fn test_transfer_from_private_to_public_authwit() {
     // Make the call to caller contract.
     env.call_private(
         deployer,
-        caller_contract.deposit_from_private_to_public_vault(
+        caller_contract.deposit_from_private_to_private_vault(
             token_address,
             tf_amount,
             authwit_nonce,
@@ -106,7 +106,7 @@ unconstrained fn test_transfer_from_private_to_public_authwit() {
 
     // Get balances after.
     let deployer_bal_after = env.execute_utility(token_contract.private_balance(deployer));
-    let caller_bal_after = env.view_public(token_contract.public_balance(caller_address));
+    let caller_bal_after = env.execute_utility(token_contract.private_balance(caller_address));
 
     // Assertions.
     assert_eq(
@@ -121,8 +121,8 @@ unconstrained fn test_transfer_from_private_to_public_authwit() {
     );
 }
 
-#[test(should_fail_with = "Unknown auth witness for message hash 0x19c6c0cf2921e90d1606ecbd51b2451c471cfc661f2003cb101447edd3b5de8a")]
-unconstrained fn test_transfer_from_private_to_public_authwit_invalid_nonce() {
+#[test(should_fail_with = "Unknown auth witness for message hash 0x10a8874591b1d248ce003ef830923cbe7719156fa00c27aa250d8317ab0f4350")]
+unconstrained fn test_transfer_from_private_to_private_authwit_invalid_nonce() {
     // Setup.
     let (env, deployer, _, token_address, caller_address) =
         utils::setup_and_deploy_caller_contract();
@@ -142,7 +142,7 @@ unconstrained fn test_transfer_from_private_to_public_authwit_invalid_nonce() {
     // Make the call to caller contract.
     env.call_private(
         deployer,
-        caller_contract.deposit_from_private_to_public_vault(
+        caller_contract.deposit_from_private_to_private_vault(
             token_address,
             tf_amount,
             authwit_nonce,
