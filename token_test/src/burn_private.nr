@@ -41,7 +41,7 @@ unconstrained fn test_burn_private() {
 #[test(should_fail_with = "Insufficient private balance")]
 unconstrained fn test_burn_private_reverts_if_insufficient_public_balance() {
     // Setup.
-    let (env, deployer, user, token_address) = utils::setup_deploy();
+    let (env, _, user, token_address) = utils::setup_deploy();
     let token_contract = Token::at(token_address);
 
     // Try call burn with user.
